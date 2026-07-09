@@ -1,5 +1,4 @@
 import express from 'express';
-import { userRouter } from './modules/user/user.routes.js';
 import { correlationIdMiddleware } from './middlewares/correlation-id.middleware.js';
 import { healthRouter } from './modules/observability/health/health.routes.js';
 import { setupSwagger } from './config/swagger.config.js';
@@ -23,7 +22,6 @@ app.get('/csrf-token', (req, res) => {
 
 app.use('/health', healthRouter);
 
-app.use('/user', userRouter);
 setupSwagger(app);
 
 export { app };
