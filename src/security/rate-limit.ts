@@ -1,9 +1,9 @@
 import rateLimit from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
 import type { Redis } from 'ioredis';
-import { createRedisClient } from '../config/redis.config.js';
+import { redisClient } from '../lib/redis.js';
 
-const redis = createRedisClient();
+const redis = redisClient;
 
 function buildStore(prefix: string): RedisStore {
   return new RedisStore({

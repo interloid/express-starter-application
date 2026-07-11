@@ -9,7 +9,7 @@
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "target": "es2025",
-    "types": [],
+    "types": ["node", "jest"],
     "outDir": "./dist",
     "rootDir": "./src",
     "esModuleInterop": true,
@@ -26,7 +26,7 @@
 
     // Stricter Typechecking Options
     "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
+    // "exactOptionalPropertyTypes": true,
 
     // Style Options
     // "noImplicitReturns": true,

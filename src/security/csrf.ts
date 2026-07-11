@@ -1,6 +1,8 @@
 import { doubleCsrf } from 'csrf-csrf';
 import type { RequestHandler, Request, Response, NextFunction } from 'express';
 import { registerCsrfDocs } from './csrf.docs.js';
+import { HttpError } from '../common/error/http-errors.js';
+import { env } from '../config/env.config.js';
 
 interface CsrfConfig {
   enabled: boolean;
@@ -14,8 +16,8 @@ export interface CsrfInterface {
   generateToken: (req: Request, res: Response) => string;
 }
 const CSRF_EXEMPT_PATHS = [
-  '/api/v1/auth/login',
-  'auth/register',
+  '/auth/login',
+  '/auth/register',
   '/api/v1/auth/forgot-password',
   '/api/v1/webhooks',
 ];
@@ -57,8 +59,16 @@ export function createCsrf({ enabled, secret, isProduction }: CsrfConfig): CsrfI
 export function createCsrfProtection(csrfMiddleware: RequestHandler): RequestHandler {
   return (req: Request, res: Response, next: NextFunction) => {
     const isExempt = CSRF_EXEMPT_PATHS.some((path) => req.path.startsWith(path));
-    if (isExempt) return next();
+    console.log(env.CSRF_ENABLED, typeof env.CSRF_ENABLED);
+    if (isExempt || env.CSRF_ENABLED === false) return next();
 
-    return csrfMiddleware(req, res, next);
+    csrfMiddleware(req, res, (err) => {
+      if (err instanceof Error) {
+        console.log(err);
+
+        return next(new HttpError(403, err.message));
+      }
+      next();
+    });
   };
 }
