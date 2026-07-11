@@ -7,9 +7,8 @@ import {
   globalErrorHandler,
   notFoundHandler,
 } from './common/middlewares/error-handler.middleware.js';
-import { authRouter } from './modules/auth/auth.routes.js';
 import { env } from './config/env.config.js';
-import { uploadRouter } from './modules/upload/upload.routes.js';
+import { rootRouter } from './routes/route-v1.js';
 
 const app = express();
 
@@ -28,9 +27,7 @@ app.get('/csrf-token', (req, res) => {
 });
 
 app.use('/health', healthRouter);
-app.use('/auth', authRouter);
-app.use('/upload', uploadRouter);
-
+app.use('/api/v1', rootRouter);
 setupSwagger(app);
 
 app.use(notFoundHandler);

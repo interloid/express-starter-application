@@ -6,7 +6,14 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['eslint.config.mjs', 'src/newrelic.cjs', 'dist/', 'node_modules/'],
+    files: ['**/*.test.ts', '**/*.spec.ts'],
+    ignores: [
+      'eslint.config.mjs',
+      'src/newrelic.cjs',
+      'dist/',
+      'node_modules/',
+      'jest.config.cjs',
+    ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
@@ -19,9 +26,7 @@ export default tseslint.config(
       },
       sourceType: 'module',
       parserOptions: {
-        projectService: {
-          allowDefaultProject: ['prisma.config.ts', 'prisma/seed.ts'],
-        },
+        project: './tsconfig.eslint.json',
         tsconfigRootDir: import.meta.dirname,
       },
     },

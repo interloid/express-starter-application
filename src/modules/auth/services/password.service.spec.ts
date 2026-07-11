@@ -1,57 +1,30 @@
 import { hashPassword, verifyPassword } from './password.service.js';
-import { describe, it, expect } from '@jest/globals';
 
-describe('Password Utils', () => {
-  describe('hashPassword', () => {
-    it('should hash the password', async () => {
-      const plain = 'Password@123';
-
-      const hash = await hashPassword(plain);
-
-      expect(hash).toBeDefined();
-      expect(hash).not.toBe(plain);
-      expect(hash.startsWith('$argon2id$')).toBe(true);
-    });
-
-    it('should generate different hashes for the same password', async () => {
-      const plain = 'Password@123';
-
-      const hash1 = await hashPassword(plain);
-      const hash2 = await hashPassword(plain);
-
-      expect(hash1).not.toBe(hash2);
-    });
+describe('password.service', () => {
+  it('hashes a password to an argon2id string', async () => {
+    const hash = await hashPassword('StrongPass123!');
+    expect(hash).toMatch(/^\$argon2id\$/); // argon2id prefix
+    expect(hash).not.toBe('StrongPass123!'); // not plaintext
   });
 
-  describe('verifyPassword', () => {
-    it('should return true for a valid password', async () => {
-      const plain = 'Password@123';
-      const hash = await hashPassword(plain);
+  it('produces different hashes for the same password (unique salt)', async () => {
+    const a = await hashPassword('samePassword');
+    const b = await hashPassword('samePassword');
+    expect(a).not.toBe(b); // salted → different each time
+  });
 
-      const result = await verifyPassword(hash, plain);
+  it('verifies a correct password', async () => {
+    const hash = await hashPassword('CorrectPassword1');
+    expect(await verifyPassword(hash, 'CorrectPassword1')).toBe(true);
+  });
 
-      expect(result).toBe(true);
-    });
+  it('rejects an incorrect password', async () => {
+    const hash = await hashPassword('CorrectPassword1');
+    expect(await verifyPassword(hash, 'WrongPassword2')).toBe(false);
+  });
 
-    it('should return false for an invalid password', async () => {
-      const plain = 'Password@123';
-      const hash = await hashPassword(plain);
-
-      const result = await verifyPassword(hash, 'WrongPassword');
-
-      expect(result).toBe(false);
-    });
-
-    it('should return false for an invalid hash', async () => {
-      const result = await verifyPassword('invalid-hash', 'Password@123');
-
-      expect(result).toBe(false);
-    });
-
-    it('should return false for an empty hash', async () => {
-      const result = await verifyPassword('', 'Password@123');
-
-      expect(result).toBe(false);
-    });
+  it('returns false for a malformed hash instead of throwing', async () => {
+    // verifyPassword catches argon2.verify errors and returns false
+    expect(await verifyPassword('not-a-valid-hash', 'anything')).toBe(false);
   });
 });

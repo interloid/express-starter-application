@@ -1,4 +1,4 @@
-import { NotFoundError, UnauthorizedError } from '../../common/error/http-errors.js';
+import { UnauthorizedError } from '../../common/error/http-errors.js';
 import { env } from '../../config/env.config.js';
 import { prisma } from '../../lib/prisma.js';
 import { enqueuePasswordResetEmail } from '../queue/mail.producer.js';
@@ -27,8 +27,6 @@ export async function registerService(data: RegisterDto) {
 }
 
 export async function loginService(email: string, password: string, meta: LoginMeta = {}) {
-  console.log(email, password);
-
   const normalized = email.toLowerCase().trim();
 
   const user = await prisma.user.findFirst({
@@ -72,7 +70,7 @@ export async function forgotPassword(email: string): Promise<void> {
     where: { email: normalized, deletedAt: null },
   });
 
-  if (!user) throw new NotFoundError('Email not exists');
+  if (!user) return;
 
   const rawToken = await createVerificationToken(user.id, 'PASSWORD_RESET', RESET_TTL_MS);
   const resetLink = `${env.FRONTEND_URL}/reset-password?token=${rawToken}`;

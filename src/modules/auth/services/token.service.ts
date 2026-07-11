@@ -35,12 +35,10 @@ export async function issueTokens(
 ): Promise<{ accessToken: string; refreshToken: string }> {
   const accessToken = signAccessToken({ sub: userId, email });
 
-  // Refresh token = random opaque value (not a JWT); we store its hash.
   const rawRefresh = randomBytes(48).toString('hex');
   const tokenHash = sha256(rawRefresh);
 
   const expiresAt = new Date();
-  // crude TTL parse for '7d' / '15m' / '1h'
   expiresAt.setTime(expiresAt.getTime() + ttlToMs(env.JWT_REFRESH_TTL));
 
   await prisma.refreshToken.create({
@@ -56,9 +54,6 @@ export async function issueTokens(
   return { accessToken, refreshToken: rawRefresh };
 }
 
-/**
- * Rotate a refresh token. Detects reuse of a revoked token (revokes family).
- */
 export async function rotateRefreshToken(
   rawRefresh: string,
   meta: TokenMeta = {},
@@ -70,7 +65,6 @@ export async function rotateRefreshToken(
     throw new UnauthorizedError('Invalid refresh token');
   }
 
-  // Reuse detection: a revoked token being replayed = likely theft.
   if (stored.revokedAt) {
     await revokeAllForUser(stored.userId);
     throw new UnauthorizedError('Refresh token reuse detected — all sessions revoked');
@@ -80,7 +74,6 @@ export async function rotateRefreshToken(
     throw new UnauthorizedError('Refresh token expired');
   }
 
-  // Re-check the user is still active before minting new tokens.
   const user = await prisma.user.findFirst({
     where: { id: stored.userId, deletedAt: null },
   });
@@ -88,7 +81,6 @@ export async function rotateRefreshToken(
     throw new UnauthorizedError('Account inactive');
   }
 
-  // Revoke the old, issue a new pair.
   await prisma.refreshToken.update({
     where: { id: stored.id },
     data: { revokedAt: new Date() },

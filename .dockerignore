@@ -1,0 +1,36 @@
+# Dependencies (reinstalled in the image via npm ci)
+node_modules
+
+# Build output (recompiled in the image)
+dist
+
+# Environment / secrets — NEVER copy into the image
+.env
+.env.*
+!.env.example
+
+# Tests + coverage
+coverage
+**/*.spec.ts
+**/*.test.ts
+
+# Git
+.git
+.gitignore
+
+# Editor / OS
+.vscode
+.idea
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+
+# CI
+.github
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
