@@ -5,7 +5,7 @@ import { presignBodySchema } from './upload.schema.js';
 export function registerUploadDocs() {
   swaggerRegistry.registerPath({
     method: 'post',
-    path: '/upload/presign',
+    path: '/api/v1/upload/presign',
     tags: ['Upload'],
     security: [{ bearerAuth: [] }],
     request: {

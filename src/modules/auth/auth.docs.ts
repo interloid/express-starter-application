@@ -10,7 +10,7 @@ import {
 export function registerAuthDocs() {
   swaggerRegistry.registerPath({
     method: 'post',
-    path: '/auth/login',
+    path: '/api/v1/auth/login',
     tags: ['Auth'],
     request: {
       body: { content: { 'application/json': { schema: loginSchema } } },
@@ -27,7 +27,7 @@ export function registerAuthDocs() {
 
   swaggerRegistry.registerPath({
     method: 'post',
-    path: '/auth/refresh',
+    path: '/api/v1/auth/refresh',
     tags: ['Auth'],
     request: {
       headers: z.object({ refresh_token: z.string() }),
@@ -40,7 +40,7 @@ export function registerAuthDocs() {
 
   swaggerRegistry.registerPath({
     method: 'post',
-    path: '/auth/logout',
+    path: '/api/v1/auth/logout',
     tags: ['Auth'],
     request: {
       headers: z.object({ access_token: z.string(), refresh_token: z.string() }),
@@ -50,7 +50,7 @@ export function registerAuthDocs() {
 
   swaggerRegistry.registerPath({
     method: 'post',
-    path: '/auth/logout-all',
+    path: '/api/v1/auth/logout-all',
     tags: ['Auth'],
     request: {
       headers: z.object({ access_token: z.string() }),
@@ -64,7 +64,7 @@ export function registerAuthDocs() {
 
   swaggerRegistry.registerPath({
     method: 'post',
-    path: '/auth/register',
+    path: '/api/v1/auth/register',
     tags: ['Auth'],
     request: {
       body: {
@@ -83,7 +83,7 @@ export function registerAuthDocs() {
 
   swaggerRegistry.registerPath({
     method: 'post',
-    path: '/auth/verify-mail',
+    path: '/api/v1/auth/verify-mail',
     tags: ['Auth'],
     request: {
       body: {
@@ -102,7 +102,7 @@ export function registerAuthDocs() {
 
   swaggerRegistry.registerPath({
     method: 'post',
-    path: '/auth/forgot-password',
+    path: '/api/v1/auth/forgot-password',
     tags: ['Auth'],
     request: {
       body: {
@@ -125,7 +125,7 @@ export function registerAuthDocs() {
 
   swaggerRegistry.registerPath({
     method: 'post',
-    path: '/auth/reset-password',
+    path: '/api/v1/auth/reset-password',
     tags: ['Auth'],
     request: {
       body: {

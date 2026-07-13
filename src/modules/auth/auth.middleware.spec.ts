@@ -20,14 +20,14 @@ jest.unstable_mockModule('./services/token.service.js', () => ({
 
 const { requireAuth, requirePermission } = await import('./auth.middleware.js');
 
-import type { Request, Response, NextFunction } from 'express';
+import type { Request, Response } from 'express';
 
 import { UnauthorizedError, ForbiddenError } from '../../common/error/http-errors.js';
 
 describe('auth.middleware', () => {
   let req: Request;
   let res: Response;
-  let next: jest.MockedFunction<NextFunction>;
+  let next: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();

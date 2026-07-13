@@ -24,23 +24,24 @@ import { registerAuthDocs } from './auth.docs.js';
 registerAuthDocs();
 
 export const authRouter = Router();
+authRouter.use(authLimiter);
 
-authRouter.post('/login', authLimiter, validate({ body: loginSchema }), login);
+authRouter.post('/login', validate({ body: loginSchema }), login);
 authRouter.post('/refresh', refresh);
 authRouter.post('/logout', requireAuth, logout);
 authRouter.post('/logout-all', requireAuth, logoutAll);
-authRouter.post('/register', authLimiter, validate({ body: loginSchema }), register);
-authRouter.post('/verify-mail', authLimiter, validate({ body: verifyMailSchema }), verifyEmail);
+authRouter.post('/register', validate({ body: loginSchema }), register);
+authRouter.post('/verify-mail', validate({ body: verifyMailSchema }), verifyEmail);
 
 authRouter.post(
   '/forgot-password',
-  authLimiter,
+
   validate({ body: forgotPasswordSchema }),
   forgotPasswordHandler,
 );
 authRouter.post(
   '/reset-password',
-  authLimiter,
+
   validate({ body: resetPasswordSchema }),
   resetPasswordHandler,
 );

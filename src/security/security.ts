@@ -17,6 +17,7 @@ export interface SecurityConfig {
 export interface SecurityDeps {
   redis: Redis;
 }
+const rateLimitEnabled = process.env.RATE_LIMIT_ENABLED !== 'false';
 
 export function setupSecurity(
   app: express.Application,
@@ -35,8 +36,9 @@ export function setupSecurity(
       allowedHeaders: ['x-csrf-token'],
     }),
   );
-
-  app.use(defaultLimiter);
+  if (rateLimitEnabled) {
+    app.use(defaultLimiter);
+  }
 
   app.use(cookieParser());
 

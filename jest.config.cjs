@@ -15,10 +15,8 @@ module.exports = {
     ],
   },
 
-  // ── stop the double run (ignore compiled tests in dist) ──
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
 
-  // ── coverage ──
   coverageDirectory: 'coverage',
   collectCoverageFrom: [
     'src/**/*.service.ts',
@@ -30,5 +28,5 @@ module.exports = {
     '!src/server.ts',
   ],
   coverageReporters: ['text', 'text-summary', 'html', 'lcov'],
-  coveragePathIgnorePatterns: ['/node_modules/', '/dist/'],
+  coveragePathIgnorePatterns: ['/node_modules/', '/dist/','/test/e2e/'],
 };

@@ -59,7 +59,6 @@ export function createCsrf({ enabled, secret, isProduction }: CsrfConfig): CsrfI
 export function createCsrfProtection(csrfMiddleware: RequestHandler): RequestHandler {
   return (req: Request, res: Response, next: NextFunction) => {
     const isExempt = CSRF_EXEMPT_PATHS.some((path) => req.path.startsWith(path));
-    console.log(env.CSRF_ENABLED, typeof env.CSRF_ENABLED);
     if (isExempt || env.CSRF_ENABLED === false) return next();
 
     csrfMiddleware(req, res, (err) => {

@@ -1,9 +1,14 @@
 import rateLimit from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
 import type { Redis } from 'ioredis';
+import type { RequestHandler } from 'express';
 import { redisClient } from '../lib/redis.js';
 
 const redis = redisClient;
+
+const noop: RequestHandler = (_req, _res, next) => next();
+
+const RATE_LIMIT_ENABLED = process.env.RATE_LIMIT_ENABLED !== 'false';
 
 function buildStore(prefix: string): RedisStore {
   return new RedisStore({
@@ -12,29 +17,35 @@ function buildStore(prefix: string): RedisStore {
   });
 }
 
-export const defaultLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  limit: 100,
-  standardHeaders: 'draft-7',
-  legacyHeaders: false,
-  store: buildStore('rl:default:'),
-  message: { error: 'Too many requests, please try again later.' },
-});
+export const defaultLimiter: RequestHandler = RATE_LIMIT_ENABLED
+  ? rateLimit({
+      windowMs: 60 * 1000,
+      limit: 100,
+      standardHeaders: 'draft-7',
+      legacyHeaders: false,
+      store: buildStore('rl:default:'),
+      message: { error: 'Too many requests, please try again later.' },
+    })
+  : noop;
 
-export const averageRateLimiter = rateLimit({
-  windowMs: 10 * 1000,
-  limit: 20,
-  standardHeaders: 'draft-7',
-  legacyHeaders: false,
-  store: buildStore('rl:medium:'),
-  message: { error: 'Too many requests, please slow down.' },
-});
+export const averageRateLimiter: RequestHandler = RATE_LIMIT_ENABLED
+  ? rateLimit({
+      windowMs: 10 * 1000,
+      limit: 20,
+      standardHeaders: 'draft-7',
+      legacyHeaders: false,
+      store: buildStore('rl:medium:'),
+      message: { error: 'Too many requests, please slow down.' },
+    })
+  : noop;
 
-export const authLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  limit: 5,
-  standardHeaders: 'draft-7',
-  legacyHeaders: false,
-  store: buildStore('rl:auth:'),
-  message: { error: 'Too many attempts, please try again in a minute.' },
-});
+export const authLimiter: RequestHandler = RATE_LIMIT_ENABLED
+  ? rateLimit({
+      windowMs: 60 * 1000,
+      limit: 5,
+      standardHeaders: 'draft-7',
+      legacyHeaders: false,
+      store: buildStore('rl:auth:'),
+      message: { error: 'Too many attempts, please try again in a minute.' },
+    })
+  : noop;

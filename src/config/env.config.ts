@@ -46,6 +46,14 @@ const envSchema = z
       }, z.boolean())
       .default(false),
 
+    RATE_LIMIT_ENABLED: z
+      .preprocess((val) => {
+        if (val === 'true') return true;
+        if (val === 'false') return false;
+        return val;
+      }, z.boolean())
+      .default(false),
+
     AWS_ACCESS_KEY_ID: z.string().min(1, 'AWS Access Key is required'),
     AWS_SECRET_ACCESS_KEY: z.string().min(1, 'AWS Secret Access Key is required'),
     AWS_REGION: z.string().min(1, 'AWS Region is required').default('us-east-1'),

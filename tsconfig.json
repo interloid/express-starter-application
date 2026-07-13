@@ -8,10 +8,10 @@
     // See also https://aka.ms/tsconfig/module
     "module": "nodenext",
     "moduleResolution": "nodenext",
-    "target": "es2025",
+    "target": "esnext",
     "types": ["node", "jest"],
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     // For nodejs:
@@ -46,5 +46,5 @@
     "skipLibCheck": true
   },
   "include": ["src/**/*", "test/**/*"],
-  "exclude": ["node_modules", "dist", "eslint.config.mjs", "test"]
+  "exclude": ["node_modules", "dist", "eslint.config.mjs"]
 }

@@ -8,6 +8,8 @@ WORKDIR /app
 RUN apk add --no-cache python3 make g++ openssl
 
 COPY package*.json ./
+COPY src/newrelic.cjs ./
+
 RUN npm ci
 
 COPY . .
@@ -39,9 +41,6 @@ COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/newrelic.cjs ./newrelic.cjs
 
-# Build metadata — injected via compose build args (see docker-compose.yml).
-# Both the ARG (build-time) and ENV (runtime) are required so the running
-# container can expose them at /health/ready.
 ARG GIT_COMMIT=unknown
 ARG BUILD_TIME=unknown
 ENV GIT_COMMIT=$GIT_COMMIT
@@ -54,5 +53,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --retries=3 --start-period=10s \
   CMD curl -f http://localhost:8080/health/live || exit 1
 
-# start:prod runs `prisma migrate deploy` before booting (migrate-on-boot).
 CMD ["npm", "run", "start:prod"]

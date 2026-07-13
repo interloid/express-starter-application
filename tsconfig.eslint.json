@@ -8,6 +8,7 @@
     "test/**/*.ts",
     "prisma/**/*.ts",
     "prisma.config.ts",
-    "eslint.config.mjs"
+    "eslint.config.mjs",
+    "**/*.spec.ts"
   ]
 }

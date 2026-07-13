@@ -1,0 +1,195 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same branch/PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: Lint, Audit, Test, Build
+    runs-on: ubuntu-latest
+
+    # Service containers for the unit/e2e tests (they run on the RUNNER, so they
+    # reach these via localhost + the mapped host ports below).
+    #
+    # NOTE the offset host ports (5435 / 6380): the docker-compose stack used in
+    # the smoke-test step publishes its own Postgres/Redis, and two containers
+    # cannot bind the same host port on the runner. Offsetting here keeps them
+    # from colliding.
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        ports:
+          - 5435:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6380:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+
+    env:
+      # Everything the app/tests need to boot. Fake values — nothing here is real.
+      NODE_ENV: test
+      APP_ENV: local
+      PORT: '8080'
+
+      # Points at the SERVICE CONTAINERS above (host ports, via localhost).
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5435/test_db?schema=public
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5435/test_db?schema=public
+      REDIS_URL: redis://localhost:6380/0
+
+      JWT_ACCESS_SECRET: ci-access-secret-ci-access-secret-32
+      JWT_REFRESH_SECRET: ci-refresh-secret-ci-refresh-secret-32
+      JWT_ACCESS_TTL: 15m
+      JWT_REFRESH_TTL: 7d
+
+      FRONTEND_URL: http://localhost:3000
+      CORS_ORIGINS: http://localhost:3000
+
+      CSRF_ENABLED: 'false'
+      SWAGGER_ENABLED: 'false'
+      NEW_RELIC_ENABLED: 'false'
+      RATE_LIMIT_ENABLED: 'false' # e2e would otherwise trip the 5/min auth limiter
+      LOG_LEVEL: error
+
+      # Never used in CI (mail is mocked, S3 is never called) — present only so
+      # env validation passes.
+      MAIL_FROM: no-reply@example.com
+      SMTP_HOST: smtp.example.com
+      SMTP_PORT: '587'
+      SMTP_USER: ci-user
+      SMTP_PASSWORD: ci-password
+      NEW_RELIC_APP_NAME: express-starter-ci
+      NEW_RELIC_LICENSE_KEY: '0000000000000000000000000000000000000000'
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: mock-access-key
+      AWS_SECRET_ACCESS_KEY: mock-secret-key
+      AWS_S3_BUCKET_NAME: mock-bucket
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      # Requires a COMMITTED, synced package-lock.json. If this fails with
+      # "Missing: <pkg> from lock file", run `npm install` locally and commit
+      # the updated lockfile.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Security audit
+        run: npm audit --audit-level=high
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Apply migrations (test DB)
+        run: npx prisma migrate deploy
+
+      - name: Unit tests (with coverage)
+        run: npm test -- --coverage --ci
+
+      # The e2e suite runs its own `prisma migrate deploy` via globalSetup and
+      # seeds the roles it needs per-test, so no separate seed step is required.
+      - name: E2E tests
+        run: npm run test:e2e
+
+      - name: Build
+        run: npm run build
+
+      - name: Build production Docker image
+        run: |
+          GIT_COMMIT=$(git rev-parse --short HEAD) \
+          BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
+          docker compose build
+
+      - name: Docker smoke test
+        run: |
+          # docker-compose loads `.env`; CI has none, so generate one.
+          # The compose file's `environment:` block overrides DATABASE_URL and
+          # REDIS_URL with the internal service names, so the values here only
+          # need to exist, not be reachable.
+          cat > .env << 'EOF'
+          NODE_ENV=production
+          APP_ENV=production
+          PORT=8080
+          JWT_ACCESS_SECRET=ci-access-secret-ci-access-secret-32
+          JWT_REFRESH_SECRET=ci-refresh-secret-ci-refresh-secret-32
+          JWT_ACCESS_TTL=15m
+          JWT_REFRESH_TTL=7d
+          FRONTEND_URL=http://localhost:3000
+          CORS_ORIGINS=http://localhost:3000
+          CSRF_ENABLED=false
+          SWAGGER_ENABLED=false
+          NEW_RELIC_ENABLED=false
+          NEW_RELIC_APP_NAME=express-starter-ci
+          NEW_RELIC_LICENSE_KEY=0000000000000000000000000000000000000000
+          LOG_LEVEL=error
+          MAIL_FROM=no-reply@example.com
+          SMTP_HOST=smtp.example.com
+          SMTP_PORT=587
+          SMTP_USER=ci-user
+          SMTP_PASSWORD=ci-password
+          AWS_REGION=us-east-1
+          AWS_ACCESS_KEY_ID=mock-access-key
+          AWS_SECRET_ACCESS_KEY=mock-secret-key
+          AWS_S3_BUCKET_NAME=mock-bucket
+          EOF
+
+          docker compose up -d
+
+          # Poll rather than sleep — three containers + migrate-on-boot take a
+          # variable amount of time, and a fixed sleep is either flaky or slow.
+          #
+          # /health/live is the right target: it is prefix-excluded (NOT under
+          # /api/v1) and checks nothing external, so it proves the image boots
+          # and serves HTTP. /health/ready would also depend on the DB.
+          echo "Waiting for the app to become healthy..."
+          for i in $(seq 1 20); do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/health/live || echo "000")
+            if [ "$CODE" = "200" ]; then
+              echo "Smoke test passed: app booted and returned HTTP 200."
+              docker compose down
+              exit 0
+            fi
+            echo "  attempt $i: got HTTP $CODE — retrying in 3s"
+            sleep 3
+          done
+
+          echo "Smoke test FAILED — app never returned 200."
+          echo "--- container logs ---"
+          docker compose logs
+          docker compose down
+          exit 1

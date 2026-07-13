@@ -25,7 +25,16 @@ export function setupSwagger(app: Express): void {
       version: '1.0.0',
       description: 'API documentation generated from Zod schemas.',
     },
-    servers: [{ url: '/' }],
+    servers: [
+      {
+        url: 'http://localhost:8080',
+        description: 'Local Development Server',
+      },
+      {
+        url: 'https://api.yourdomain.com',
+        description: 'Production Server',
+      },
+    ],
   });
 
   app.use('/docs', swaggerUi.serve, swaggerUi.setup(document));
