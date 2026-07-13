@@ -1,4 +1,3 @@
-import z from 'zod';
 import { swaggerRegistry } from '../../config/swagger.config.js';
 import { presignBodySchema } from './upload.schema.js';
 
@@ -7,7 +6,7 @@ export function registerUploadDocs() {
     method: 'post',
     path: '/api/v1/upload/presign',
     tags: ['Upload'],
-    security: [{ bearerAuth: [] }],
+    security: [{ accessTokenAuth: [] }, { refreshTokenAuth: [] }],
     request: {
       body: {
         content: {
@@ -16,7 +15,6 @@ export function registerUploadDocs() {
           },
         },
       },
-      headers: z.object({ access_token: z.string() }),
     },
     responses: {
       200: {

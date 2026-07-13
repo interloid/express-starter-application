@@ -12,6 +12,7 @@ export function registerAuthDocs() {
     method: 'post',
     path: '/api/v1/auth/login',
     tags: ['Auth'],
+    security: [{ accessTokenAuth: [] }, { refreshTokenAuth: [] }],
     request: {
       body: { content: { 'application/json': { schema: loginSchema } } },
     },
@@ -29,6 +30,7 @@ export function registerAuthDocs() {
     method: 'post',
     path: '/api/v1/auth/refresh',
     tags: ['Auth'],
+    security: [{ accessTokenAuth: [] }, { refreshTokenAuth: [] }],
     request: {
       headers: z.object({ refresh_token: z.string() }),
     },
@@ -42,6 +44,7 @@ export function registerAuthDocs() {
     method: 'post',
     path: '/api/v1/auth/logout',
     tags: ['Auth'],
+    security: [{ accessTokenAuth: [] }, { refreshTokenAuth: [] }],
     request: {
       headers: z.object({ access_token: z.string(), refresh_token: z.string() }),
     },
@@ -52,10 +55,10 @@ export function registerAuthDocs() {
     method: 'post',
     path: '/api/v1/auth/logout-all',
     tags: ['Auth'],
+    security: [{ accessTokenAuth: [] }, { refreshTokenAuth: [] }],
     request: {
       headers: z.object({ access_token: z.string() }),
     },
-    security: [{ bearerAuth: [] }],
     responses: {
       204: { description: 'All sessions logged out' },
       401: { description: 'Unauthorized' },
@@ -66,6 +69,7 @@ export function registerAuthDocs() {
     method: 'post',
     path: '/api/v1/auth/register',
     tags: ['Auth'],
+    security: [{ accessTokenAuth: [] }, { refreshTokenAuth: [] }],
     request: {
       body: {
         content: {
@@ -85,6 +89,7 @@ export function registerAuthDocs() {
     method: 'post',
     path: '/api/v1/auth/verify-mail',
     tags: ['Auth'],
+    security: [{ accessTokenAuth: [] }, { refreshTokenAuth: [] }],
     request: {
       body: {
         content: {
@@ -104,6 +109,7 @@ export function registerAuthDocs() {
     method: 'post',
     path: '/api/v1/auth/forgot-password',
     tags: ['Auth'],
+    security: [{ accessTokenAuth: [] }, { refreshTokenAuth: [] }],
     request: {
       body: {
         content: {
@@ -127,6 +133,7 @@ export function registerAuthDocs() {
     method: 'post',
     path: '/api/v1/auth/reset-password',
     tags: ['Auth'],
+    security: [{ accessTokenAuth: [] }, { refreshTokenAuth: [] }],
     request: {
       body: {
         content: {

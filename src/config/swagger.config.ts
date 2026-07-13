@@ -16,6 +16,17 @@ export { z };
 export function setupSwagger(app: Express): void {
   if (process.env.SWAGGER_ENABLED !== 'true') return;
 
+  swaggerRegistry.registerComponent('securitySchemes', 'accessTokenAuth', {
+    type: 'apiKey',
+    in: 'header',
+    name: 'access_token',
+  });
+
+  swaggerRegistry.registerComponent('securitySchemes', 'refreshTokenAuth', {
+    type: 'apiKey',
+    in: 'header',
+    name: 'refresh_token',
+  });
   const generator = new OpenApiGeneratorV3(swaggerRegistry.definitions);
 
   const document = generator.generateDocument({
@@ -36,6 +47,9 @@ export function setupSwagger(app: Express): void {
       },
     ],
   });
+  const components = generator.generateComponents();
+  document.components = components.components;
+  document.security = [{ accessTokenAuth: [] }, { refreshTokenAuth: [] }];
 
   app.use('/docs', swaggerUi.serve, swaggerUi.setup(document));
   // Raw spec (useful for client generation)

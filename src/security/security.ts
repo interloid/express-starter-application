@@ -33,7 +33,7 @@ export function setupSecurity(
     cors({
       origin: config.corsOrigins,
       credentials: true,
-      allowedHeaders: ['x-csrf-token'],
+      allowedHeaders: ['x-csrf-token', 'access_token', 'refresh_token'],
     }),
   );
   if (rateLimitEnabled) {
