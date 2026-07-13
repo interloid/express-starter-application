@@ -16,13 +16,6 @@ jobs:
     name: Lint, Audit, Test, Build
     runs-on: ubuntu-latest
 
-    # Service containers for the unit/e2e tests (they run on the RUNNER, so they
-    # reach these via localhost + the mapped host ports below).
-    #
-    # NOTE the offset host ports (5435 / 6380): the docker-compose stack used in
-    # the smoke-test step publishes its own Postgres/Redis, and two containers
-    # cannot bind the same host port on the runner. Offsetting here keeps them
-    # from colliding.
     services:
       postgres:
         image: postgres:15-alpine
@@ -121,17 +114,6 @@ jobs:
       - name: Unit tests (with coverage)
         run: npm test -- --coverage --ci
 
-      - name: Debug DB connectivity
-        run: |
-          echo "DATABASE_URL=$DATABASE_URL"
-          echo "TEST_DATABASE_URL=$TEST_DATABASE_URL"
-          echo "--- is postgres reachable? ---"
-          PGPASSWORD=postgres psql -h localhost -p 5435 -U postgres -d test_db -c '\dt' || echo "psql failed"
-          echo "--- what does prisma see? ---"
-          npx prisma db execute --stdin <<< "SELECT 1;" || echo "prisma db execute failed"
-
-      # The e2e suite runs its own `prisma migrate deploy` via globalSetup and
-      # seeds the roles it needs per-test, so no separate seed step is required.
       - name: E2E tests
         run: npm run test:e2e
 
