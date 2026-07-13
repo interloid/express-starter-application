@@ -1,17 +1,24 @@
 import type { PrismaClient } from '@prisma/client';
 
 export async function resetDb(prisma: PrismaClient): Promise<void> {
-  await prisma.$executeRawUnsafe(`
-    TRUNCATE TABLE
-      "user_roles",
-      "role_permissions",
-      "refresh_tokens",
-      "verification_tokens",
-      "users",
-      "roles",
-      "permissions"
-    RESTART IDENTITY CASCADE
-  `);
+  const tables = await prisma.$queryRaw<Array<{ tablename: string }>>`
+    SELECT tablename
+    FROM pg_tables
+    WHERE schemaname = 'public'
+      AND tablename NOT LIKE '_prisma%'
+  `;
+
+  if (tables.length === 0) {
+    throw new Error(
+      'resetDb: no tables found in the "public" schema.\n' +
+        'Migrations likely did not run against this database, or DATABASE_URL ' +
+        'points at a different one.\n' +
+        `DATABASE_URL=${process.env.DATABASE_URL ?? '(unset)'}`,
+    );
+  }
+
+  const names = tables.map((t) => `"${t.tablename}"`).join(', ');
+  await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${names} RESTART IDENTITY CASCADE`);
 }
 
 export async function seedRoles(prisma: PrismaClient): Promise<void> {
