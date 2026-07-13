@@ -45,7 +45,7 @@ export function registerShutdownHandlers(resources: ShutdownResources): void {
     process.on(signal, () => {
       void gracefulShutdown(signal, resources);
       setTimeout(() => {
-        console.error('Forced shutdown after timeout');
+        logger.error('Forced shutdown after timeout');
         process.exit(1);
       }, 10_000).unref();
     });

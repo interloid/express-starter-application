@@ -63,8 +63,6 @@ export function createCsrfProtection(csrfMiddleware: RequestHandler): RequestHan
 
     csrfMiddleware(req, res, (err) => {
       if (err instanceof Error) {
-        console.log(err);
-
         return next(new HttpError(403, err.message));
       }
       next();
