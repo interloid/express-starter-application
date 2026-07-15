@@ -1,0 +1,94 @@
+services:
+  # ==========================================
+  # Express Application
+  # ==========================================
+  app:
+    container_name: express-starter-application
+    image: express-starter-application
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Injected into the image (Dockerfile ARG → ENV). Shell provides values.
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+        BUILD_TIME: ${BUILD_TIME:-unknown}
+    ports:
+      - '8080:8080'
+    env_file:
+      # Optional so it doesn't fail in CI where there's no .env.
+      - path: .env
+        required: false
+    environment:
+      - NODE_ENV=production
+      - APP_ENV=production
+      # Internal service names + CONTAINER ports (not host ports).
+      - DATABASE_URL=postgresql://postgres:postgres@postgres_db:5432/starter?schema=public
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8080/health/live']
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ==========================================
+  # PostgreSQL
+  # ==========================================
+  postgres_db:
+    container_name: express-postgres
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=starter
+    ports:
+      # Host 5433 → container 5432 (offset to avoid clashing with a local pg).
+      - '5433:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ==========================================
+  # Redis
+  # ==========================================
+  redis:
+    container_name: express-redis
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    ports:
+      - '6379:6379'
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - app-network
+
+volumes:
+  pgdata:
+    driver: local
+  redisdata:
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge
