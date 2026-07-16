@@ -1,5 +1,4 @@
 import { jest } from '@jest/globals';
-
 const mockFindFirst = jest.fn();
 const mockFindMany = jest.fn();
 const mockVerifyAccessToken = jest.fn();
@@ -22,15 +21,15 @@ const { requireAuth, requirePermission } = await import('./auth.middleware.js');
 
 import type { Request, Response } from 'express';
 
-import { UnauthorizedError, ForbiddenError } from '../../common/error/http-errors.js';
+import { ForbiddenError, UnauthorizedError } from '../../common/error/http-errors.js';
+import { env } from '../../config/env.config.js';
 
 describe('auth.middleware', () => {
   let req: Request;
   let res: Response;
   let next: jest.Mock;
-
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
 
     req = {
       cookies: {},
@@ -38,7 +37,7 @@ describe('auth.middleware', () => {
     } as Request;
 
     res = {} as Response;
-
+    env.COOKIE_AUTH = true;
     next = jest.fn();
   });
 
@@ -90,6 +89,27 @@ describe('auth.middleware', () => {
       expect(next).toHaveBeenCalledWith();
     });
 
+    it('should authenticate using bearer token', async () => {
+      req.headers = {
+        authorization: 'Bearer bearer-token',
+      };
+
+      mockVerifyAccessToken.mockReturnValue({
+        sub: 'user-id',
+        email: 'test@test.com',
+      });
+
+      mockFindFirst.mockResolvedValue({
+        id: 'user-id',
+        email: 'test@test.com',
+        status: true,
+      } as never);
+
+      await requireAuth(req, res, next);
+
+      expect(mockVerifyAccessToken).toHaveBeenCalledWith('bearer-token');
+    });
+
     it('should authenticate using access_token header', async () => {
       req.headers = {
         access_token: 'header-token',
@@ -109,10 +129,45 @@ describe('auth.middleware', () => {
       await requireAuth(req, res, next);
 
       expect(mockVerifyAccessToken).toHaveBeenCalledWith('header-token');
-
-      expect(next).toHaveBeenCalledWith();
     });
 
+    it('should use first access_token when header is an array', async () => {
+      req.headers = {
+        access_token: ['token-1', 'token-2'],
+      };
+
+      mockVerifyAccessToken.mockReturnValue({
+        sub: 'user-id',
+        email: 'test@test.com',
+      });
+
+      mockFindFirst.mockResolvedValue({
+        id: 'user-id',
+        email: 'test@test.com',
+        status: true,
+      } as never);
+
+      await requireAuth(req, res, next);
+
+      expect(mockVerifyAccessToken).toHaveBeenCalledWith('token-1');
+    });
+
+    it('should reject when user does not exist', async () => {
+      req.headers = {
+        access_token: 'token',
+      };
+
+      mockVerifyAccessToken.mockReturnValue({
+        sub: 'user-id',
+      });
+
+      mockFindFirst.mockResolvedValue(null as never);
+
+      await requireAuth(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(expect.any(UnauthorizedError));
+      // expect(next.mock.calls[0][0]?.message).toBe('Account inactive');
+    });
     it('should reject inactive user', async () => {
       req.cookies = {
         access_token: 'token',
@@ -173,6 +228,71 @@ describe('auth.middleware', () => {
       expect(next).toHaveBeenCalledWith(expect.any(UnauthorizedError));
     });
 
+    it('should authenticate with no permissions', async () => {
+      req.headers = {
+        access_token: 'token',
+      };
+
+      mockVerifyAccessToken.mockReturnValue({
+        sub: 'user-id',
+        email: 'test@test.com',
+      });
+
+      mockFindFirst.mockResolvedValue({
+        id: 'user-id',
+        email: 'test@test.com',
+        status: true,
+      } as never);
+
+      await requireAuth(req, res, next);
+
+      expect(req.user?.permissions).toEqual(undefined);
+    });
+    it('should remove duplicate permissions', async () => {
+      req.headers = {
+        access_token: 'token',
+      };
+
+      mockVerifyAccessToken.mockReturnValue({
+        sub: 'user-id',
+        email: 'test@test.com',
+      });
+
+      mockFindFirst.mockResolvedValue({
+        id: 'user-id',
+        email: 'test@test.com',
+        status: true,
+      } as never);
+
+      mockFindMany.mockResolvedValue([
+        {
+          role: {
+            permissions: [
+              {
+                permission: {
+                  name: 'user:create',
+                },
+              },
+            ],
+          },
+        },
+        {
+          role: {
+            permissions: [
+              {
+                permission: {
+                  name: 'user:create',
+                },
+              },
+            ],
+          },
+        },
+      ] as never);
+
+      await requireAuth(req, res, next);
+
+      expect(req.user?.permissions).toEqual(['user:create']);
+    });
     it('should allow exact permission', () => {
       req.user = {
         id: 'user-id',

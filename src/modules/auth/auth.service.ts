@@ -17,8 +17,8 @@ import {
 } from './services/verification-token.service.js';
 
 interface LoginMeta {
-  userAgent?: string;
-  ipAddress?: string;
+  userAgent?: string | undefined;
+  ipAddress?: string | undefined;
 }
 const RESET_TTL_MS = 60 * 60 * 1000; // 1 hour
 
@@ -33,12 +33,15 @@ export async function loginService(email: string, password: string, meta: LoginM
     where: { email: normalized, deletedAt: null },
   });
 
-  if (!user || user.status === false) {
+  const dummyHash =
+    '$argon2id$v=19$m=65536,t=3,p=4$c29tZXNhbHQ$R+9G64a2fQz1ZkUjK3g7OqV4X6b5w8e9r0t1y2u3i4o';
+
+  const hashToVerify = user ? user.passwordHash : dummyHash;
+  const isMatch = await verifyPassword(hashToVerify, password);
+
+  if (!user || user.status === false || !isMatch) {
     throw new UnauthorizedError('Invalid credentials');
   }
-
-  const ok = await verifyPassword(user.passwordHash, password);
-  if (!ok) throw new UnauthorizedError('Invalid credentials');
 
   const tokens = await issueTokens(user.id, user.email, meta);
   return { user: { id: user.id, email: user.email }, ...tokens };

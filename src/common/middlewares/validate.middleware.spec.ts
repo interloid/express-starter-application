@@ -13,6 +13,7 @@ describe('validate middleware', () => {
       body: {},
       query: {},
       params: {},
+      validated: {},
     } as Request;
 
     res = {} as Response;
@@ -77,6 +78,11 @@ describe('validate middleware', () => {
     };
 
     middleware(req, res, next);
+    expect(req.validated).toEqual({
+      query: {
+        page: '1',
+      },
+    });
 
     expect(req.query).toEqual({
       page: '1',
@@ -121,7 +127,11 @@ describe('validate middleware', () => {
     };
 
     middleware(req, res, next);
-
+    expect(req.validated).toEqual({
+      params: {
+        id: '123',
+      },
+    });
     expect(req.params).toEqual({
       id: '123',
     });
@@ -149,6 +159,37 @@ describe('validate middleware', () => {
     expect(error).toBeInstanceOf(z.ZodError);
   });
 
+  it('should preserve validated query when params are validated', () => {
+    const middleware = validate({
+      query: z.object({
+        page: z.coerce.number(),
+      }),
+      params: z.object({
+        id: z.string(),
+      }),
+    });
+
+    req.query = {
+      page: '2',
+    };
+
+    req.params = {
+      id: '123',
+    };
+
+    middleware(req, res, next);
+
+    expect(req.validated).toEqual({
+      query: {
+        page: 2,
+      },
+      params: {
+        id: '123',
+      },
+    });
+
+    expect(next).toHaveBeenCalledWith();
+  });
   it('should call next when no schemas are provided', () => {
     const middleware = validate({});
 

@@ -95,35 +95,39 @@ The API is available at `http://localhost:8080/api/v1`.
 
 ## Environment Variables
 
-| Variable                                       | Description                                    | Default                  |
-| ---------------------------------------------- | ---------------------------------------------- | ------------------------ |
-| `NODE_ENV`                                     | Build mode (`development`/`production`/`test`) | `development`            |
-| `APP_ENV`                                      | Deployment target (`local`/`production`)       | `local`                  |
-| `PORT`                                         | Server port                                    | `8080`                   |
-| `DATABASE_URL`                                 | PostgreSQL connection string                   | —                        |
-| `REDIS_URL`                                    | Redis connection string                        | `redis://localhost:6379` |
-| `JWT_ACCESS_SECRET`                            | Access token secret (≥32 chars)                | —                        |
-| `JWT_REFRESH_SECRET`                           | Refresh token secret (≥32 chars)               | —                        |
-| `JWT_ACCESS_TTL`                               | Access token lifetime                          | `15m`                    |
-| `JWT_REFRESH_TTL`                              | Refresh token lifetime                         | `7d`                     |
-| `FRONTEND_URL`                                 | Frontend base URL (for email links)            | `http://localhost:3000`  |
-| `CORS_ORIGINS`                                 | Comma-separated allowed origins                | `http://localhost:3000`  |
-| `CSRF_ENABLED`                                 | Enable CSRF protection                         | `false`                  |
-| `CSRF_SECRET`                                  | CSRF signing secret                            | —                        |
-| `RATE_LIMIT_ENABLED`                           | Enable rate limiting (set `false` in tests)    | `true`                   |
-| `SMTP_HOST` / `SMTP_PORT`                      | SMTP server                                    | —                        |
-| `SMTP_USER` / `SMTP_PASSWORD`                  | SMTP credentials                               | —                        |
-| `MAIL_FROM`                                    | Sender address                                 | —                        |
-| `AWS_REGION`                                   | S3 region                                      | —                        |
-| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`  | S3 credentials                                 | —                        |
-| `AWS_S3_BUCKET_NAME`                           | Upload bucket                                  | —                        |
-| `NEW_RELIC_ENABLED`                            | Enable New Relic agent                         | `false`                  |
-| `NEW_RELIC_APP_NAME` / `NEW_RELIC_LICENSE_KEY` | New Relic config (required when enabled)       | —                        |
-| `SWAGGER_ENABLED`                              | Expose Swagger docs                            | `true`                   |
-| `LOG_LEVEL`                                    | Pino log level                                 | `info`                   |
-| `GIT_COMMIT` / `BUILD_TIME`                    | Injected at Docker build                       | `unknown`                |
-
-> **Never commit `.env`.** Use `.env.example` as the template.
+| Variable                 | Description                                               | Default / Example                                                 |
+| ------------------------ | --------------------------------------------------------- | ----------------------------------------------------------------- |
+| `PORT`                   | HTTP server port                                          | `8080`                                                            |
+| `NODE_ENV`               | Runtime environment (`development`, `production`, `test`) | `development`                                                     |
+| `APP_ENV`                | Deployment environment (`local`, `staging`, `production`) | `local`                                                           |
+| `ADMIN_DEFAULT_PASSWORD` | Initial password for the seeded administrator account     | `ChangeMe123!`                                                    |
+| `DATABASE_URL`           | PostgreSQL connection string                              | `postgresql://user:password@localhost:5432/db_name?schema=public` |
+| `REDIS_URL`              | Redis connection URL                                      | `redis://localhost:6379`                                          |
+| `JWT_ALGORITHM`          | JWT signing algorithm                                     | `HS256`                                                           |
+| `JWT_ISSUER`             | JWT issuer claim                                          | `your-app-name`                                                   |
+| `JWT_AUDIENCE`           | JWT audience claim                                        | `your-app-client`                                                 |
+| `JWT_ACCESS_SECRET`      | Secret used to sign access tokens                         | —                                                                 |
+| `JWT_ACCESS_TTL`         | Access token lifetime                                     | `1h`                                                              |
+| `JWT_REFRESH_TTL`        | Refresh token lifetime                                    | `7d`                                                              |
+| `FRONTEND_URL`           | Frontend application URL used in email links              | `http://localhost:3000`                                           |
+| `CORS_ORIGINS`           | Comma-separated list of allowed CORS origins              | `http://localhost:3000`                                           |
+| `CSRF_ENABLED`           | Enable CSRF protection                                    | `false`                                                           |
+| `CSRF_SECRET`            | Secret used for CSRF token signing                        | —                                                                 |
+| `RATE_LIMIT_ENABLED`     | Enable Redis-backed rate limiting                         | `true`                                                            |
+| `SMTP_HOST`              | SMTP server host                                          | `smtp.gmail.com`                                                  |
+| `SMTP_PORT`              | SMTP server port                                          | `587`                                                             |
+| `SMTP_USER`              | SMTP username                                             | —                                                                 |
+| `SMTP_PASSWORD`          | SMTP password or app password                             | —                                                                 |
+| `MAIL_FROM`              | Sender email address                                      | `no-reply@example.com`                                            |
+| `AWS_ACCESS_KEY_ID`      | AWS access key                                            | —                                                                 |
+| `AWS_SECRET_ACCESS_KEY`  | AWS secret access key                                     | —                                                                 |
+| `AWS_REGION`             | AWS region                                                | `ap-south-1`                                                      |
+| `AWS_S3_BUCKET_NAME`     | S3 bucket used for uploads                                | —                                                                 |
+| `NEW_RELIC_APP_NAME`     | New Relic application name                                | `express-starter-app`                                             |
+| `NEW_RELIC_LICENSE_KEY`  | New Relic license key                                     | —                                                                 |
+| `SWAGGER_ENABLED`        | Enable Swagger/OpenAPI documentation                      | `true`                                                            |
+| `GIT_COMMIT`             | Git commit hash injected during build                     | `unknown`                                                         |
+| `BUILD_TIME`             | Build timestamp injected during build                     | `unknown`                                                         |
 
 ## Project Structure
 

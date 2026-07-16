@@ -72,30 +72,34 @@ async function main() {
     });
     console.log(`Assigned 'users:manage' to the Admin role.`);
   }
+  if (process.env.NODE_ENV !== 'production') {
+    const adminEmail = 'admin@example.com';
+    const adminPassword = process.env.ADMIN_DEFAULT_PASSWORD || 'ChangeMe123!';
+    const passwordHash = await argon2.hash(adminPassword);
 
-  const adminEmail = 'admin@example.com';
-  const passwordHash = await argon2.hash('Admin@123');
-  const adminUser = await prisma.user.upsert({
-    where: { email: adminEmail },
-    update: {},
-    create: {
-      email: adminEmail,
-      passwordHash,
-      emailVerified: true,
-      status: true,
-      firstName: 'Admin',
-    },
-  });
+    const adminUser = await prisma.user.upsert({
+      where: { email: adminEmail },
+      update: {},
+      create: {
+        email: adminEmail,
+        passwordHash,
+        emailVerified: true,
+        status: true,
+        firstName: 'Admin',
+      },
+    });
 
-  await prisma.userRole.upsert({
-    where: { userId_roleId: { userId: adminUser.id, roleId: superAdmin.id } },
-    update: {},
-    create: { userId: adminUser.id, roleId: superAdmin.id },
-  });
+    await prisma.userRole.upsert({
+      where: { userId_roleId: { userId: adminUser.id, roleId: superAdmin.id } },
+      update: {},
+      create: { userId: adminUser.id, roleId: superAdmin.id },
+    });
 
-  console.log('Seed complete. Admin:', adminEmail, '/ ChangeMe123!');
+    console.log(`Admin user successfully created/updated: ${adminEmail}`);
+  } else {
+    console.warn('Skipping admin seed in production environment.');
+  }
 }
-
 main()
   .catch((e: unknown) => {
     if (e instanceof Error) {

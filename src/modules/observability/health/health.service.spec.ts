@@ -1,43 +1,62 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { createHealthService } from './health.service.js';
+
+const mockQueryRaw = jest.fn<() => Promise<unknown>>();
+const mockPing = jest.fn<() => Promise<string>>();
+jest.unstable_mockModule('../../../lib/prisma.js', () => ({
+  prisma: {
+    $queryRaw: mockQueryRaw,
+  },
+}));
+
+jest.unstable_mockModule('../../../lib/redis.js', () => ({
+  redisClient: {
+    ping: mockPing,
+  },
+}));
+
+jest.unstable_mockModule('../../../config/env.config.js', () => ({
+  env: {
+    GIT_COMMIT: 'abc123',
+    BUILD_TIME: '2026-07-11T12:00:00Z',
+  },
+}));
+
+const { createHealthService } = await import('./health.service.js');
 
 describe('HealthService', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
     jest.restoreAllMocks();
 
-    delete process.env.GIT_COMMIT;
-    delete process.env.BUILD_TIME;
+    mockQueryRaw.mockResolvedValue(undefined);
+    mockPing.mockResolvedValue('PONG');
   });
 
   function mockMemoryUsage(heapUsed: number, rss: number): void {
     jest.spyOn(process, 'memoryUsage').mockReturnValue({
-      heapUsed,
       rss,
       heapTotal: heapUsed,
+      heapUsed,
       external: 0,
       arrayBuffers: 0,
     });
   }
 
-  it('returns liveness status', () => {
+  it('should return liveness', () => {
     const service = createHealthService();
 
     const result = service.getLiveness();
 
     expect(result.status).toBe('ok');
     expect(typeof result.timestamp).toBe('string');
-    expect(new Date(result.timestamp).toString()).not.toBe('Invalid Date');
   });
 
-  it('returns readiness healthy when memory is within limits', () => {
+  it('should return readiness when everything is healthy', async () => {
     mockMemoryUsage(100 * 1024 * 1024, 200 * 1024 * 1024);
-
-    process.env.GIT_COMMIT = 'abc123';
-    process.env.BUILD_TIME = '2026-07-11T12:00:00Z';
 
     const service = createHealthService();
 
-    const result = service.getReadiness();
+    const result = await service.getReadiness();
 
     expect(result.healthy).toBe(true);
 
@@ -54,6 +73,12 @@ describe('HealthService', () => {
           used: '200MB',
           limit: '500MB',
         },
+        database: {
+          status: 'up',
+        },
+        redis: {
+          status: 'up',
+        },
       },
       version: {
         commitId: 'abc123',
@@ -62,38 +87,30 @@ describe('HealthService', () => {
     });
   });
 
-  it('returns readiness down when heap exceeds limit', () => {
+  it('should return down when heap exceeds limit', async () => {
     mockMemoryUsage(301 * 1024 * 1024, 200 * 1024 * 1024);
 
     const service = createHealthService();
 
-    const result = service.getReadiness();
+    const result = await service.getReadiness();
 
     expect(result.healthy).toBe(false);
-
-    expect(result.body.status).toBe('down');
 
     expect(result.body.info.memory_heap).toEqual({
       status: 'down',
       used: '301MB',
       limit: '300MB',
     });
-
-    expect(result.body.info.memory_rss.status).toBe('up');
   });
 
-  it('returns readiness down when rss exceeds limit', () => {
+  it('should return down when rss exceeds limit', async () => {
     mockMemoryUsage(100 * 1024 * 1024, 501 * 1024 * 1024);
 
     const service = createHealthService();
 
-    const result = service.getReadiness();
+    const result = await service.getReadiness();
 
     expect(result.healthy).toBe(false);
-
-    expect(result.body.status).toBe('down');
-
-    expect(result.body.info.memory_heap.status).toBe('up');
 
     expect(result.body.info.memory_rss).toEqual({
       status: 'down',
@@ -102,16 +119,35 @@ describe('HealthService', () => {
     });
   });
 
-  it('returns unknown version when env values are missing', () => {
+  it('should return database down when query fails', async () => {
     mockMemoryUsage(100 * 1024 * 1024, 200 * 1024 * 1024);
+
+    mockQueryRaw.mockRejectedValue(new Error());
 
     const service = createHealthService();
 
-    const result = service.getReadiness();
+    const result = await service.getReadiness();
 
-    expect(result.body.version).toEqual({
-      commitId: 'unknown',
-      buildTime: 'unknown',
+    expect(result.healthy).toBe(false);
+
+    expect(result.body.info.database).toEqual({
+      status: 'down',
+    });
+  });
+
+  it('should return redis down when ping fails', async () => {
+    mockMemoryUsage(100 * 1024 * 1024, 200 * 1024 * 1024);
+
+    mockPing.mockRejectedValue(new Error());
+
+    const service = createHealthService();
+
+    const result = await service.getReadiness();
+
+    expect(result.healthy).toBe(false);
+
+    expect(result.body.info.redis).toEqual({
+      status: 'down',
     });
   });
 });

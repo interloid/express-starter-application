@@ -16,6 +16,7 @@ import { requireAuth } from './auth.middleware.js';
 import {
   forgotPasswordSchema,
   loginSchema,
+  registerSchema,
   resetPasswordSchema,
   verifyMailSchema,
 } from './auth.schema.js';
@@ -30,7 +31,7 @@ authRouter.post('/login', validate({ body: loginSchema }), login);
 authRouter.post('/refresh', refresh);
 authRouter.post('/logout', requireAuth, logout);
 authRouter.post('/logout-all', requireAuth, logoutAll);
-authRouter.post('/register', validate({ body: loginSchema }), register);
+authRouter.post('/register', validate({ body: registerSchema }), register);
 authRouter.post('/verify-mail', validate({ body: verifyMailSchema }), verifyEmail);
 
 authRouter.post(

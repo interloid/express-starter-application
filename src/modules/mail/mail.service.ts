@@ -1,22 +1,4 @@
-import nodemailer, { type Transporter } from 'nodemailer';
-
-export interface SmtpConfig {
-  host: string;
-  port: number;
-  secure: boolean; // true for 465, false for 587
-  user: string;
-  pass: string;
-  from: string;
-}
-
-export function createMailTransporter(config: SmtpConfig): Transporter {
-  return nodemailer.createTransport({
-    host: config.host,
-    port: config.port,
-    secure: config.secure,
-    auth: { user: config.user, pass: config.pass },
-  });
-}
+import { type Transporter } from 'nodemailer';
 
 export async function sendVerificationEmail(
   transporter: Transporter,

@@ -1,7 +1,8 @@
-import type { Request, Response, NextFunction } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import { ForbiddenError, UnauthorizedError } from '../../common/error/http-errors.js';
-import { verifyAccessToken } from './services/token.service.js';
+import { env } from '../../config/env.config.js';
 import { prisma } from '../../lib/prisma.js';
+import { verifyAccessToken } from './services/token.service.js';
 
 async function resolvePermissions(userId: string): Promise<string[]> {
   const roles = await prisma.userRole.findMany({
@@ -24,9 +25,17 @@ export const requireAuth = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const cookieToken = (req.cookies as Record<string, string> | undefined)?.access_token;
-    const headerToken = req.headers['access_token'] as string | undefined;
-    const token = cookieToken ?? headerToken;
+    let token: string | undefined;
+
+    if (env.COOKIE_AUTH && req.cookies?.access_token) {
+      token = req.cookies.access_token as string;
+    } else if (req.headers.authorization?.startsWith('Bearer ')) {
+      token = req.headers.authorization.split(' ')[1];
+    } else if (req.headers['access_token']) {
+      token = Array.isArray(req.headers['access_token'])
+        ? req.headers['access_token'][0]
+        : req.headers['access_token'];
+    }
 
     if (!token) throw new UnauthorizedError('Authentication token missing');
 

@@ -1,11 +1,12 @@
-import type { Express } from 'express';
-import swaggerUi from 'swagger-ui-express';
 import {
   extendZodWithOpenApi,
   OpenApiGeneratorV3,
   OpenAPIRegistry,
 } from '@asteasolutions/zod-to-openapi';
+import type { Express } from 'express';
+import swaggerUi from 'swagger-ui-express';
 import z from 'zod';
+import { env } from './env.config.js';
 
 extendZodWithOpenApi(z);
 
@@ -14,7 +15,13 @@ export const swaggerRegistry = new OpenAPIRegistry();
 export { z };
 
 export function setupSwagger(app: Express): void {
-  if (process.env.SWAGGER_ENABLED !== 'true') return;
+  if (!env.SWAGGER_ENABLED) return;
+
+  swaggerRegistry.registerComponent('securitySchemes', 'bearerAuth', {
+    type: 'http',
+    scheme: 'bearer',
+    bearerFormat: 'JWT',
+  });
 
   swaggerRegistry.registerComponent('securitySchemes', 'accessTokenAuth', {
     type: 'apiKey',
@@ -48,8 +55,10 @@ export function setupSwagger(app: Express): void {
     ],
   });
   const components = generator.generateComponents();
-  document.components = components.components;
-  document.security = [{ accessTokenAuth: [] }, { refreshTokenAuth: [] }];
+  if (components.components) {
+    document.components = components.components;
+  }
+  document.security = [{ bearerAuth: [] }, { accessTokenAuth: [] }, { refreshTokenAuth: [] }];
 
   app.use('/docs', swaggerUi.serve, swaggerUi.setup(document));
   // Raw spec (useful for client generation)

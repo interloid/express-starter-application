@@ -1,3 +1,7 @@
+import { env } from '../../../config/env.config.js';
+import { prisma } from '../../../lib/prisma.js';
+import { redisClient } from '../../../lib/redis.js';
+
 const HEAP_LIMIT_BYTES = 300 * 1024 * 1024; // 300 MB
 const RSS_LIMIT_BYTES = 500 * 1024 * 1024; // 500 MB
 const toMB = (bytes: number) => `${Math.round(bytes / 1024 / 1024)}MB`;
@@ -20,11 +24,28 @@ export function createHealthService() {
       limit: toMB(RSS_LIMIT_BYTES),
     };
   }
+  async function checkDb() {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      return { status: 'up' };
+    } catch {
+      return { status: 'down' };
+    }
+  }
+
+  async function checkRedis() {
+    try {
+      await redisClient.ping();
+      return { status: 'up' };
+    } catch {
+      return { status: 'down' };
+    }
+  }
 
   function versionInfo() {
     return {
-      commitId: process.env.GIT_COMMIT ?? 'unknown',
-      buildTime: process.env.BUILD_TIME ?? 'unknown',
+      commitId: env.GIT_COMMIT ?? 'unknown',
+      buildTime: env.BUILD_TIME ?? 'unknown',
     };
   }
 
@@ -32,10 +53,12 @@ export function createHealthService() {
     return { status: 'ok', timestamp: new Date().toISOString() };
   }
 
-  function getReadiness() {
+  async function getReadiness() {
     const info = {
       memory_heap: checkHeap(),
       memory_rss: checkRss(),
+      database: await checkDb(),
+      redis: await checkRedis(),
     };
 
     const healthy = Object.values(info).every((c) => c.status === 'up');

@@ -50,6 +50,11 @@ export interface LoggerOptions {
 
 class Logger {
   private pinoInstance!: PinoLogger;
+  constructor() {
+    this.pinoInstance = pino({
+      level: 'info',
+    });
+  }
 
   async init(options: LoggerOptions = {}): Promise<void> {
     const level = options.level || (env.APP_ENV === 'local' ? 'debug' : 'info');
@@ -153,10 +158,6 @@ class Logger {
   }
 
   error(msg: string | Error, context?: Record<string, unknown>): void {
-    if (!this.pinoInstance) {
-      console.error(msg);
-      return;
-    }
     if (msg instanceof Error) {
       this.pinoInstance.error({ err: msg, ...context }, msg.message);
     } else {

@@ -10,8 +10,8 @@ export interface AccessPayload {
 }
 
 interface TokenMeta {
-  userAgent?: string;
-  ipAddress?: string;
+  userAgent?: string | undefined;
+  ipAddress?: string | undefined;
 }
 
 function sha256(input: string): string {
@@ -20,12 +20,19 @@ function sha256(input: string): string {
 
 function signAccessToken(payload: AccessPayload): string {
   return jwt.sign(payload, env.JWT_ACCESS_SECRET, {
-    expiresIn: env.JWT_ACCESS_TTL as jwt.SignOptions['expiresIn'],
+    expiresIn: (env.JWT_ACCESS_TTL as jwt.SignOptions['expiresIn']) ?? '15m',
+    algorithm: env.JWT_ALGORITHM as jwt.Algorithm,
+    issuer: env.JWT_ISSUER,
+    audience: env.JWT_AUDIENCE,
   });
 }
 
 export function verifyAccessToken(token: string): AccessPayload {
-  return jwt.verify(token, env.JWT_ACCESS_SECRET) as AccessPayload;
+  return jwt.verify(token, env.JWT_ACCESS_SECRET, {
+    algorithms: [env.JWT_ALGORITHM as jwt.Algorithm],
+    issuer: env.JWT_ISSUER,
+    audience: env.JWT_AUDIENCE,
+  }) as AccessPayload;
 }
 
 export async function issueTokens(
@@ -45,8 +52,8 @@ export async function issueTokens(
     data: {
       userId,
       tokenHash,
-      userAgent: meta.userAgent,
-      ipAddress: meta.ipAddress,
+      userAgent: meta.userAgent ?? null,
+      ipAddress: meta.ipAddress ?? null,
       expiresAt,
     },
   });
