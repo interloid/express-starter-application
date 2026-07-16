@@ -7,7 +7,13 @@ import tseslint from 'typescript-eslint';
 export default tseslint.config(
   // 1. GLOBAL IGNORES
   {
-    ignores: ['dist/', 'node_modules/', 'jest.config.cjs', 'src/newrelic.cjs'],
+    ignores: [
+      'dist/',
+      'node_modules/',
+      'jest.config.cjs',
+      'src/newrelic.cjs',
+      'jest.e2e.config.cjs',
+    ],
   },
 
   // 2. BASE RULES

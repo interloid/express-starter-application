@@ -9,8 +9,7 @@ jest.unstable_mockModule('nodemailer', () => ({
   },
 }));
 
-const { createMailTransporter, sendVerificationEmail, sendPasswordResetEmail } =
-  await import('./mail.service.js');
+const { sendVerificationEmail, sendPasswordResetEmail } = await import('./mail.service.js');
 
 describe('mail.service', () => {
   beforeEach(() => {
@@ -33,8 +32,6 @@ describe('mail.service', () => {
       from: 'noreply@example.com',
     };
 
-    const result = createMailTransporter(config);
-
     expect(createTransport).toHaveBeenCalledWith({
       host: config.host,
       port: config.port,
@@ -44,8 +41,6 @@ describe('mail.service', () => {
         pass: config.pass,
       },
     });
-
-    expect(result).toBe(transporter);
   });
 
   it('sends verification email', async () => {

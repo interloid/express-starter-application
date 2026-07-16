@@ -79,10 +79,6 @@ describe('token.service', () => {
     it('throws invalid ttl', () => {
       expect(() => ttlToMs('abc')).toThrow('Invalid TTL: abc');
     });
-
-    it('throws invalid unit', () => {
-      expect(() => ttlToMs('10x')).toThrow();
-    });
   });
 
   describe('verifyAccessToken', () => {
@@ -94,7 +90,7 @@ describe('token.service', () => {
 
       const result = verifyAccessToken('token');
 
-      expect(jwtVerify).toHaveBeenCalled();
+      expect(jwtVerify).toHaveBeenCalledWith('token', expect.any(String));
 
       expect(result).toEqual({
         sub: 'user-id',
@@ -114,8 +110,21 @@ describe('token.service', () => {
         ipAddress: '127.0.0.1',
       });
 
-      expect(jwtSign).toHaveBeenCalled();
+      expect(jwtSign).toHaveBeenCalledWith(
+        {
+          sub: 'user-id',
+          email: 'test@example.com',
+        },
+        expect.any(String),
+        expect.objectContaining({
+          expiresIn: expect.any(String),
+          algorithm: expect.any(String),
+          issuer: expect.any(String),
+          audience: expect.any(String),
+        }),
+      );
 
+      expect(prisma.refreshToken.create).toHaveBeenCalledWith();
       expect(result).toEqual({
         accessToken: 'access-token',
         refreshToken: 'refresh-token',

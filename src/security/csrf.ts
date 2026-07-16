@@ -16,10 +16,12 @@ export interface CsrfInterface {
   generateToken: (req: Request, res: Response) => string;
 }
 const CSRF_EXEMPT_PATHS = [
-  '/auth/login',
-  '/auth/register',
+  '/api/v1/auth/login',
+  '/api/v1/auth/register',
   '/api/v1/auth/forgot-password',
-  '/api/v1/webhooks',
+  '/api/v1/auth/refresh',
+  '/api/v1/auth/verify-mail',
+  '/api/v1/aiuthreset-password',
 ];
 
 export function createCsrf({ enabled, secret, isProduction }: CsrfConfig): CsrfInterface {
@@ -38,7 +40,17 @@ export function createCsrf({ enabled, secret, isProduction }: CsrfConfig): CsrfI
 
   const { doubleCsrfProtection, generateCsrfToken } = doubleCsrf({
     getSecret: () => secret,
-    getSessionIdentifier: (req: Request) => req.ip ?? '',
+    getSessionIdentifier: (req: Request) => {
+      if (req.user?.id) {
+        return req.user.id;
+      }
+
+      if (req.ip) {
+        return req.ip;
+      }
+
+      return 'anonymous-session';
+    },
     cookieName: 'x-csrf-token',
     cookieOptions: {
       httpOnly: true,

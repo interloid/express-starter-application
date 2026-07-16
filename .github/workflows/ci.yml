@@ -53,7 +53,6 @@ jobs:
       REDIS_URL: redis://localhost:6380/0
 
       JWT_ACCESS_SECRET: ci-access-secret-ci-access-secret-32
-      JWT_REFRESH_SECRET: ci-refresh-secret-ci-refresh-secret-32
       JWT_ACCESS_TTL: 15m
       JWT_REFRESH_TTL: 7d
 
@@ -137,7 +136,6 @@ jobs:
           APP_ENV=production
           PORT=8080
           JWT_ACCESS_SECRET=ci-access-secret-ci-access-secret-32
-          JWT_REFRESH_SECRET=ci-refresh-secret-ci-refresh-secret-32
           JWT_ACCESS_TTL=15m
           JWT_REFRESH_TTL=7d
           FRONTEND_URL=http://localhost:3000

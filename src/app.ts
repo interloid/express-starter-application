@@ -14,6 +14,7 @@ const app = express();
 
 app.use(express.json());
 app.use(correlationIdMiddleware);
+app.use('/health', healthRouter);
 
 const { csrf } = setupSecurity(app, {
   isLocal: env.APP_ENV === 'local',
@@ -26,7 +27,6 @@ app.get('/csrf-token', (req, res) => {
   res.json({ token: csrf.generateToken(req, res) });
 });
 
-app.use('/health', healthRouter);
 app.use('/api/v1', rootRouter);
 setupSwagger(app);
 

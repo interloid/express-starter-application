@@ -103,7 +103,6 @@ The API is available at `http://localhost:8080/api/v1`.
 | `DATABASE_URL`                                 | PostgreSQL connection string                   | —                        |
 | `REDIS_URL`                                    | Redis connection string                        | `redis://localhost:6379` |
 | `JWT_ACCESS_SECRET`                            | Access token secret (≥32 chars)                | —                        |
-| `JWT_REFRESH_SECRET`                           | Refresh token secret (≥32 chars)               | —                        |
 | `JWT_ACCESS_TTL`                               | Access token lifetime                          | `15m`                    |
 | `JWT_REFRESH_TTL`                              | Refresh token lifetime                         | `7d`                     |
 | `FRONTEND_URL`                                 | Frontend base URL (for email links)            | `http://localhost:3000`  |
