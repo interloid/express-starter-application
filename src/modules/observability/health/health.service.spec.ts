@@ -1,117 +1,153 @@
-// import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-// import { createHealthService } from './health.service.js';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
-// describe('HealthService', () => {
-//   beforeEach(() => {
-//     jest.restoreAllMocks();
+const mockQueryRaw = jest.fn<() => Promise<unknown>>();
+const mockPing = jest.fn<() => Promise<string>>();
+jest.unstable_mockModule('../../../lib/prisma.js', () => ({
+  prisma: {
+    $queryRaw: mockQueryRaw,
+  },
+}));
 
-//     delete process.env.GIT_COMMIT;
-//     delete process.env.BUILD_TIME;
-//   });
+jest.unstable_mockModule('../../../lib/redis.js', () => ({
+  redisClient: {
+    ping: mockPing,
+  },
+}));
 
-//   function mockMemoryUsage(heapUsed: number, rss: number): void {
-//     jest.spyOn(process, 'memoryUsage').mockReturnValue({
-//       heapUsed,
-//       rss,
-//       heapTotal: heapUsed,
-//       external: 0,
-//       arrayBuffers: 0,
-//     });
-//   }
+jest.unstable_mockModule('../../../config/env.config.js', () => ({
+  env: {
+    GIT_COMMIT: 'abc123',
+    BUILD_TIME: '2026-07-11T12:00:00Z',
+  },
+}));
 
-//   it('returns liveness status', () => {
-//     const service = createHealthService();
+const { createHealthService } = await import('./health.service.js');
 
-//     const result = service.getLiveness();
+describe('HealthService', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
 
-//     expect(result.status).toBe('ok');
-//     expect(typeof result.timestamp).toBe('string');
-//     expect(new Date(result.timestamp).toString()).not.toBe('Invalid Date');
-//   });
+    mockQueryRaw.mockResolvedValue(undefined);
+    mockPing.mockResolvedValue('PONG');
+  });
 
-//   it('returns readiness healthy when memory is within limits', () => {
-//     mockMemoryUsage(100 * 1024 * 1024, 200 * 1024 * 1024);
+  function mockMemoryUsage(heapUsed: number, rss: number): void {
+    jest.spyOn(process, 'memoryUsage').mockReturnValue({
+      rss,
+      heapTotal: heapUsed,
+      heapUsed,
+      external: 0,
+      arrayBuffers: 0,
+    });
+  }
 
-//     process.env.GIT_COMMIT = 'abc123';
-//     process.env.BUILD_TIME = '2026-07-11T12:00:00Z';
+  it('should return liveness', () => {
+    const service = createHealthService();
 
-//     const service = createHealthService();
+    const result = service.getLiveness();
 
-//     const result = service.getReadiness();
+    expect(result.status).toBe('ok');
+    expect(typeof result.timestamp).toBe('string');
+  });
 
-//     expect(result.healthy).toBe(true);
+  it('should return readiness when everything is healthy', async () => {
+    mockMemoryUsage(100 * 1024 * 1024, 200 * 1024 * 1024);
 
-//     expect(result.body).toMatchObject({
-//       status: 'up',
-//       info: {
-//         memory_heap: {
-//           status: 'up',
-//           used: '100MB',
-//           limit: '300MB',
-//         },
-//         memory_rss: {
-//           status: 'up',
-//           used: '200MB',
-//           limit: '500MB',
-//         },
-//       },
-//       version: {
-//         commitId: 'abc123',
-//         buildTime: '2026-07-11T12:00:00Z',
-//       },
-//     });
-//   });
+    const service = createHealthService();
 
-//   it('returns readiness down when heap exceeds limit', () => {
-//     mockMemoryUsage(301 * 1024 * 1024, 200 * 1024 * 1024);
+    const result = await service.getReadiness();
 
-//     const service = createHealthService();
+    expect(result.healthy).toBe(true);
 
-//     const result = service.getReadiness();
+    expect(result.body).toMatchObject({
+      status: 'up',
+      info: {
+        memory_heap: {
+          status: 'up',
+          used: '100MB',
+          limit: '300MB',
+        },
+        memory_rss: {
+          status: 'up',
+          used: '200MB',
+          limit: '500MB',
+        },
+        database: {
+          status: 'up',
+        },
+        redis: {
+          status: 'up',
+        },
+      },
+      version: {
+        commitId: 'abc123',
+        buildTime: '2026-07-11T12:00:00Z',
+      },
+    });
+  });
 
-//     expect(result.healthy).toBe(false);
+  it('should return down when heap exceeds limit', async () => {
+    mockMemoryUsage(301 * 1024 * 1024, 200 * 1024 * 1024);
 
-//     expect(result.body.status).toBe('down');
+    const service = createHealthService();
 
-//     expect(result.body.info.memory_heap).toEqual({
-//       status: 'down',
-//       used: '301MB',
-//       limit: '300MB',
-//     });
+    const result = await service.getReadiness();
 
-//     expect(result.body.info.memory_rss.status).toBe('up');
-//   });
+    expect(result.healthy).toBe(false);
 
-//   it('returns readiness down when rss exceeds limit', () => {
-//     mockMemoryUsage(100 * 1024 * 1024, 501 * 1024 * 1024);
+    expect(result.body.info.memory_heap).toEqual({
+      status: 'down',
+      used: '301MB',
+      limit: '300MB',
+    });
+  });
 
-//     const service = createHealthService();
+  it('should return down when rss exceeds limit', async () => {
+    mockMemoryUsage(100 * 1024 * 1024, 501 * 1024 * 1024);
 
-//     const result = service.getReadiness();
+    const service = createHealthService();
 
-//     expect(result.healthy).toBe(false);
+    const result = await service.getReadiness();
 
-//     expect(result.body.status).toBe('down');
+    expect(result.healthy).toBe(false);
 
-//     expect(result.body.info.memory_heap.status).toBe('up');
+    expect(result.body.info.memory_rss).toEqual({
+      status: 'down',
+      used: '501MB',
+      limit: '500MB',
+    });
+  });
 
-//     expect(result.body.info.memory_rss).toEqual({
-//       status: 'down',
-//       used: '501MB',
-//       limit: '500MB',
-//     });
-//   });
+  it('should return database down when query fails', async () => {
+    mockMemoryUsage(100 * 1024 * 1024, 200 * 1024 * 1024);
 
-//   it('returns unknown version when env values are missing', () => {
-//     mockMemoryUsage(100 * 1024 * 1024, 200 * 1024 * 1024);
+    mockQueryRaw.mockRejectedValue(new Error());
 
-//     const service = createHealthService();
+    const service = createHealthService();
 
-//     const result = service.getReadiness();
+    const result = await service.getReadiness();
 
-//     expect(result.body.version).toEqual({
-//       commitId: 'unknown',
-//       buildTime: 'unknown',
-//     });
-//   });
-// });
+    expect(result.healthy).toBe(false);
+
+    expect(result.body.info.database).toEqual({
+      status: 'down',
+    });
+  });
+
+  it('should return redis down when ping fails', async () => {
+    mockMemoryUsage(100 * 1024 * 1024, 200 * 1024 * 1024);
+
+    mockPing.mockRejectedValue(new Error());
+
+    const service = createHealthService();
+
+    const result = await service.getReadiness();
+
+    expect(result.healthy).toBe(false);
+
+    expect(result.body.info.redis).toEqual({
+      status: 'down',
+    });
+  });
+});

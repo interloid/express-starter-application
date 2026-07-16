@@ -15,6 +15,7 @@ const envSchema = z
     PORT: z.coerce.number().default(3000),
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
     APP_ENV: z.enum(['local', 'development', 'staging', 'production']).default('local'),
+    DATABASE_URL: z.url(),
 
     NEW_RELIC_APP_NAME: z.string().optional(),
     NEW_RELIC_LICENSE_KEY: z.string().optional(),

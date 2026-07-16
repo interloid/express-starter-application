@@ -1,8 +1,9 @@
+import cookieParser from 'cookie-parser';
+import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
-import cors from 'cors';
-import cookieParser from 'cookie-parser';
 import type { Redis } from 'ioredis';
+import { env } from '../config/env.config.js';
 import { createCsrf, createCsrfProtection, type CsrfInterface } from './csrf.js';
 import { defaultLimiter } from './rate-limit.js';
 
@@ -17,7 +18,7 @@ export interface SecurityConfig {
 export interface SecurityDeps {
   redis: Redis;
 }
-const rateLimitEnabled = process.env.RATE_LIMIT_ENABLED !== 'false';
+const rateLimitEnabled = env.RATE_LIMIT_ENABLED;
 
 export function setupSecurity(
   app: express.Application,

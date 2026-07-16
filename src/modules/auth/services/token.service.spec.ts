@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 const jwtSign = jest.fn<(payload: unknown, secret: string, options: unknown) => string>();
-const jwtVerify = jest.fn<(token: string, secret: string) => unknown>();
+const jwtVerify = jest.fn<(token: string, secret: string, options: unknown) => unknown>();
 
 const randomBytes = jest.fn<(size: number) => { toString: (encoding: string) => string }>();
 
@@ -9,9 +9,9 @@ const createHash = jest.fn();
 
 const prisma = {
   refreshToken: {
-    create: jest.fn<() => Promise<void>>(),
+    create: jest.fn<(args: unknown) => Promise<void>>(),
     findUnique: jest.fn(),
-    update: jest.fn<() => Promise<void>>(),
+    update: jest.fn<(args: unknown) => Promise<void>>(),
     updateMany: jest.fn<() => Promise<void>>(),
   },
   user: {
@@ -90,7 +90,11 @@ describe('token.service', () => {
 
       const result = verifyAccessToken('token');
 
-      expect(jwtVerify).toHaveBeenCalledWith('token', expect.any(String));
+      expect(jwtVerify).toHaveBeenCalledWith('token', expect.any(String), {
+        algorithms: ['HS256'],
+        issuer: expect.any(String),
+        audience: expect.any(String),
+      });
 
       expect(result).toEqual({
         sub: 'user-id',
@@ -124,7 +128,15 @@ describe('token.service', () => {
         }),
       );
 
-      expect(prisma.refreshToken.create).toHaveBeenCalledWith();
+      expect(prisma.refreshToken.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          userId: 'user-id',
+          tokenHash: 'hashed-token',
+          userAgent: 'chrome',
+          ipAddress: '127.0.0.1',
+          expiresAt: expect.any(Date),
+        }),
+      });
       expect(result).toEqual({
         accessToken: 'access-token',
         refreshToken: 'refresh-token',
@@ -204,8 +216,12 @@ describe('token.service', () => {
 
       const result = await rotateRefreshToken('refresh');
 
-      expect(prisma.refreshToken.update).toHaveBeenCalled();
-
+      expect(prisma.refreshToken.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.any(Object),
+          data: expect.any(Object),
+        }),
+      );
       expect(result.accessToken).toBe('new-access');
     });
   });

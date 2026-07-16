@@ -1,8 +1,8 @@
-import type { Request, Response, NextFunction } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import { ForbiddenError, UnauthorizedError } from '../../common/error/http-errors.js';
-import { verifyAccessToken } from './services/token.service.js';
-import { prisma } from '../../lib/prisma.js';
 import { env } from '../../config/env.config.js';
+import { prisma } from '../../lib/prisma.js';
+import { verifyAccessToken } from './services/token.service.js';
 
 async function resolvePermissions(userId: string): Promise<string[]> {
   const roles = await prisma.userRole.findMany({
